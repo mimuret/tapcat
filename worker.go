@@ -1,20 +1,12 @@
 package main
 
 import (
-	"math/rand"
-	"strconv"
-	"time"
-
 	_ "github.com/mailru/go-clickhouse"
 	"github.com/mimuret/dtap"
 	"github.com/nats-io/go-nats"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 type Worker struct {
 	config *Config
@@ -45,9 +37,8 @@ func (w *Worker) subscribe() (*nats.Subscription, error) {
 	var err error
 	c := w.config
 	var con *nats.Conn
-	r := rand.Intn(1000)
 	if c.Nats.Token != "" {
-		con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token+"-cat-"+strconv.Itoa(r)))
+		con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token))
 	} else if c.Nats.User != "" {
 		con, err = nats.Connect(c.Nats.Host, nats.UserInfo(c.Nats.User, c.Nats.Password))
 	} else {
@@ -56,7 +47,7 @@ func (w *Worker) subscribe() (*nats.Subscription, error) {
 	if err != nil {
 		return nil, errors.Errorf("can't connect nats: %v", err)
 	}
-	return con.QueueSubscribe(c.Nats.Subject, c.Nats.Group, w.subscribeCB)
+	return con.Subscribe(c.Nats.Subject, w.subscribeCB)
 }
 
 func (w *Worker) subscribeCB(msg *nats.Msg) {
