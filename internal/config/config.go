@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package main
+package config
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -47,17 +48,10 @@ type NatsConfig struct {
 	Group    string
 }
 
-func NewConfigFromFile(filename string) (*Config, error) {
+func GetConfig(v *viper.Viper) (*Config, error) {
 	c := Config{}
-	v := viper.New()
-	v.SetConfigFile(filename)
-
-	v.SetConfigType("toml")
-	if err := v.ReadInConfig(); err != nil {
-		return nil, errors.Wrap(err, "can't read config")
-	}
 	if err := v.Unmarshal(&c); err != nil {
-		return nil, errors.Wrap(err, "can't parse config")
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 	return &c, nil
 }

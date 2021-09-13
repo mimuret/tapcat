@@ -1,28 +1,33 @@
-package main
+package worker
 
 import (
 	_ "github.com/mailru/go-clickhouse"
 	"github.com/mimuret/dtap"
+	"github.com/mimuret/tapcat/internal/config"
 	"github.com/nats-io/go-nats"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Worker struct {
-	config *Config
-	rBuf   *dtap.RBuf
+	RBuf *dtap.RBuf
+	Err  error
+
+	config *config.Config
 	sub    *nats.Subscription
 }
 
-func NewWorker(c *Config) *Worker {
+func NewWorker(c *config.Config) *Worker {
 	return &Worker{
 		config: c,
-		rBuf:   dtap.NewRbuf(uint(c.GetQueueSize()), prometheus.NewCounter(prometheus.CounterOpts{}), prometheus.NewCounter(prometheus.CounterOpts{})),
+		RBuf:   dtap.NewRbuf(uint(c.GetQueueSize()), prometheus.NewCounter(prometheus.CounterOpts{}), prometheus.NewCounter(prometheus.CounterOpts{})),
 	}
 }
+
 func (w *Worker) Run() error {
 	sub, err := w.subscribe()
 	if err != nil {
+		w.Err = err
 		return err
 	}
 	w.sub = sub
@@ -51,5 +56,5 @@ func (w *Worker) subscribe() (*nats.Subscription, error) {
 }
 
 func (w *Worker) subscribeCB(msg *nats.Msg) {
-	w.rBuf.Write(msg.Data)
+	w.RBuf.Write(msg.Data)
 }
