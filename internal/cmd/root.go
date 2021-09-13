@@ -99,6 +99,8 @@ func init() {
 	viper.BindPFlag("end", rootCmd.PersistentFlags().Lookup("end"))
 	rootCmd.PersistentFlags().String("rotate-exec", "", "exec command with filename when file is rotated")
 	viper.BindPFlag("rotate-exec", rootCmd.PersistentFlags().Lookup("rotate-exec"))
+	rootCmd.PersistentFlags().Int("queue-size", -1, "rbuf queue size (default 65535)")
+	viper.BindPFlag("queue-size", rootCmd.PersistentFlags().Lookup("queue-size"))
 
 	cobra.OnInitialize(initConfig)
 }
@@ -163,6 +165,9 @@ func prepare(v *viper.Viper) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
+	if v.GetInt("queue-size") > 0 {
+		runtime.config.QueueSize = v.GetInt("queue-size")
+	}
 
 	if v.GetString("start") != "" {
 		if runtime.startTime, err = time.Parse(time.RFC3339, v.GetString("start")); err != nil {
@@ -218,23 +223,39 @@ func run(v *viper.Viper) error {
 		}).Info("prepare output")
 	}
 	defer outputer.Close()
-	w := worker.NewWorker(runtime.config)
+	var inCounter = worker.NewCounter()
+	var outCounter = worker.NewCounter()
+	var lostCounter = worker.NewCounter()
+	var lastIn,lastOut,lastLost uint64
+	w := worker.NewWorker(runtime.config, inCounter, lostCounter)
 
 	if viper.GetBool("dry-run") {
 		return nil
 	}
 	time.Sleep(sleepDuration)
-	log.Info("start now", time.Now().String())
+	log.Info("start now ", time.Now().String())
 	if err := w.Run(); err != nil {
 		return fmt.Errorf("failed to start worker: %w", err)
 	}
 	defer w.Stop()
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGABRT, syscall.SIGINT)
-
+	ticker := time.NewTicker(time.Minute)
 LOOP:
 	for {
 		select {
+		case <-ticker.C:
+			curIn := inCounter.Get()
+			curLost := lostCounter.Get()
+			curOut := outCounter.Get()
+			log.WithFields(log.Fields{
+				"in queue/min": worker.DiffCount(lastIn, curIn),
+				"lost queue/min": worker.DiffCount(lastLost, curLost),
+				"out query/min": worker.DiffCount(lastOut, curOut),
+			}).Debug("stats")
+			lastIn = curIn
+			lastLost = curLost
+			lastOut = curOut
 		case <-ctx.Done():
 			log.Info("done")
 			break LOOP
@@ -249,6 +270,7 @@ LOOP:
 				break
 			}
 			for _, r := range data {
+				outCounter.Inc()
 				o, err := runtime.formater.Format(&r)
 				if err != nil {
 					log.Error("failed to format: %w", err)
@@ -261,7 +283,7 @@ LOOP:
 			}
 		}
 	}
-	log.Info("finished", time.Now().String())
+	log.Info("finished ", time.Now().String())
 	return nil
 }
 

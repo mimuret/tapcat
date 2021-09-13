@@ -16,10 +16,10 @@ type Worker struct {
 	sub    *nats.Subscription
 }
 
-func NewWorker(c *config.Config) *Worker {
+func NewWorker(c *config.Config,inCounter,lostCounter prometheus.Counter) *Worker {
 	return &Worker{
 		config: c,
-		RBuf:   dtap.NewRbuf(uint(c.GetQueueSize()), prometheus.NewCounter(prometheus.CounterOpts{}), prometheus.NewCounter(prometheus.CounterOpts{})),
+		RBuf:   dtap.NewRbuf(uint(c.GetQueueSize()), inCounter, lostCounter),
 	}
 }
 
