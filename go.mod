@@ -6,8 +6,6 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869
-	github.com/lestrrat-go/strftime v1.0.5
-	github.com/mailru/go-clickhouse v1.1.0
 	github.com/mimuret/dtap v0.5.3
 	github.com/nats-io/gnatsd v1.4.1 // indirect
 	github.com/nats-io/go-nats v1.7.2

@@ -1,7 +1,6 @@
 package worker
 
 import (
-	_ "github.com/mailru/go-clickhouse"
 	"github.com/mimuret/dtap"
 	"github.com/mimuret/tapcat/internal/config"
 	"github.com/nats-io/go-nats"
