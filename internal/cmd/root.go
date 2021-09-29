@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -25,6 +24,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/mimuret/dtap"
 	"github.com/mimuret/tapcat/internal/config"
@@ -207,7 +208,9 @@ func run(v *viper.Viper) error {
 		}).Info("end at")
 	}
 	var outputer io.WriteCloser
-	if v.GetString("filename") != "" {
+	if v.GetString("filename") == "-" {
+		outputer = output.NewNothing()
+	}else if v.GetString("filename") != "" {
 		if outputer, err = output.NewFileOutput(log.StandardLogger(),viper.GetString("filename"), viper.GetString("rotate-exec")); err != nil {
 			return fmt.Errorf("failed to create file outpter: %w", err)
 		}
@@ -228,6 +231,7 @@ func run(v *viper.Viper) error {
 	var lostCounter = worker.NewCounter()
 	var lastIn,lastOut,lastLost uint64
 	w := worker.NewWorker(runtime.config, inCounter, lostCounter)
+	var lastConStats = w.Stats()
 
 	if viper.GetBool("dry-run") {
 		return nil
@@ -245,17 +249,25 @@ LOOP:
 	for {
 		select {
 		case <-ticker.C:
+			conStats := w.Stats()
 			curIn := inCounter.Get()
 			curLost := lostCounter.Get()
 			curOut := outCounter.Get()
 			log.WithFields(log.Fields{
+				"queue len": len(w.RBuf.Read()),
 				"in queue/min": worker.DiffCount(lastIn, curIn),
 				"lost queue/min": worker.DiffCount(lastLost, curLost),
 				"out query/min": worker.DiffCount(lastOut, curOut),
+				"worker InMsgs": worker.DiffCount(conStats.InMsgs,lastConStats.InMsgs),
+				"worker OutMsgs": worker.DiffCount(conStats.OutMsgs,lastConStats.OutMsgs),
+				"worker InBytes": worker.DiffCount(conStats.InBytes,lastConStats.InBytes),
+				"worker OutBytes": worker.DiffCount(conStats.OutBytes,lastConStats.OutBytes),
+				"worker Reconnects": worker.DiffCount(conStats.Reconnects,lastConStats.Reconnects),
 			}).Debug("stats")
 			lastIn = curIn
 			lastLost = curLost
 			lastOut = curOut
+			lastConStats = conStats
 		case <-ctx.Done():
 			log.Info("done")
 			break LOOP

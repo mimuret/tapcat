@@ -1,8 +1,9 @@
 package format
 
 import (
-	"encoding/json"
 	"fmt"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/mimuret/dtap"
 )
