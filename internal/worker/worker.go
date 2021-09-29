@@ -3,16 +3,19 @@ package worker
 import (
 	"github.com/mimuret/dtap"
 	"github.com/mimuret/tapcat/internal/config"
-	"github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
+
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
+var (
+	NatsClientQeueuLen = 4096
+)
 type Worker struct {
 	RBuf *dtap.RBuf
 	Err  error
-
 	config *config.Config
+	con *nats.Conn
 	sub    *nats.Subscription
 }
 
@@ -32,26 +35,33 @@ func (w *Worker) Run() error {
 	w.sub = sub
 	return nil
 }
+
 func (w *Worker) Stop() {
 	w.sub.Unsubscribe()
 	w.sub.Drain()
 }
 
+func (w *Worker) Stats() nats.Statistics {
+	if w.con == nil {
+		return nats.Statistics{}
+	}
+	return w.con.Stats()
+}
+
 func (w *Worker) subscribe() (*nats.Subscription, error) {
 	var err error
 	c := w.config
-	var con *nats.Conn
 	if c.Nats.Token != "" {
-		con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token))
+		w.con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token),nats.SyncQueueLen(NatsClientQeueuLen))
 	} else if c.Nats.User != "" {
-		con, err = nats.Connect(c.Nats.Host, nats.UserInfo(c.Nats.User, c.Nats.Password))
+		w.con, err = nats.Connect(c.Nats.Host, nats.UserInfo(c.Nats.User, c.Nats.Password),nats.SyncQueueLen(NatsClientQeueuLen))
 	} else {
-		con, err = nats.Connect(c.Nats.Host)
+		w.con, err = nats.Connect(c.Nats.Host, nats.SyncQueueLen(NatsClientQeueuLen))
 	}
 	if err != nil {
 		return nil, errors.Errorf("can't connect nats: %v", err)
 	}
-	return con.Subscribe(c.Nats.Subject, w.subscribeCB)
+	return w.con.Subscribe(c.Nats.Subject, w.subscribeCB)
 }
 
 func (w *Worker) subscribeCB(msg *nats.Msg) {
