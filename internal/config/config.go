@@ -33,8 +33,8 @@ type TemplateVal struct {
 }
 
 func (c *Config) GetQueueSize() int {
-	if c.QueueSize <= 65535 {
-		return 65535
+	if c.QueueSize <= 1024 {
+		return 1024
 	}
 	return c.QueueSize
 }
