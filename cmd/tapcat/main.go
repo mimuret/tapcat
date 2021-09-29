@@ -15,8 +15,22 @@ limitations under the License.
 */
 package main
 
-import "github.com/mimuret/tapcat/internal/cmd"
+import (
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/mimuret/tapcat/internal/cmd"
+
+	_ "net/http/pprof"
+)
 
 func main() {
+	if os.Getenv("DEBUG") != "" {
+		go func() {
+			log.Println("profile enabled listen port 6060")
+			log.Println(http.ListenAndServe(":6060", nil))
+		}()
+	}
 	cmd.Execute()
 }
