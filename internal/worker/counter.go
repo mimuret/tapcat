@@ -14,22 +14,23 @@ type Counter struct {
 	prometheus.Counter
 	v uint64
 }
+
 func NewCounter() *Counter {
 	return &Counter{Counter: prometheus.NewCounter(prometheus.CounterOpts{})}
 }
 
-func (c *Counter)Get() uint64 {
+func (c *Counter) Get() uint64 {
 	return c.v
 }
 
-func (c *Counter)Inc() {
+func (c *Counter) Inc() {
 	c.Lock()
 	defer c.Unlock()
 	c.v++
 	c.Counter.Inc()
 }
 
-func DiffCount(a,b uint64) uint64 {
+func DiffCount(a, b uint64) uint64 {
 	if a <= b {
 		return b - a
 	}

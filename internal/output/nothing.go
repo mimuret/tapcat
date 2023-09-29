@@ -1,11 +1,9 @@
 package output
 
-
 type Nothing struct {
-
 }
 
-func NewNothing() (*Nothing) {
+func NewNothing() *Nothing {
 	return &Nothing{}
 }
 

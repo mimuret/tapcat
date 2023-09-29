@@ -8,18 +8,20 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
+
 var (
 	NatsClientQeueuLen = 4096
 )
+
 type Worker struct {
-	RBuf *dtap.RBuf
-	Err  error
+	RBuf   *dtap.RBuf
+	Err    error
 	config *config.Config
-	con *nats.Conn
+	con    *nats.Conn
 	sub    *nats.Subscription
 }
 
-func NewWorker(c *config.Config,inCounter,lostCounter prometheus.Counter) *Worker {
+func NewWorker(c *config.Config, inCounter, lostCounter prometheus.Counter) *Worker {
 	return &Worker{
 		config: c,
 		RBuf:   dtap.NewRbuf(uint(c.GetQueueSize()), inCounter, lostCounter),
@@ -52,9 +54,9 @@ func (w *Worker) subscribe() (*nats.Subscription, error) {
 	var err error
 	c := w.config
 	if c.Nats.Token != "" {
-		w.con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token),nats.SyncQueueLen(NatsClientQeueuLen))
+		w.con, err = nats.Connect(c.Nats.Host, nats.Token(c.Nats.Token), nats.SyncQueueLen(NatsClientQeueuLen))
 	} else if c.Nats.User != "" {
-		w.con, err = nats.Connect(c.Nats.Host, nats.UserInfo(c.Nats.User, c.Nats.Password),nats.SyncQueueLen(NatsClientQeueuLen))
+		w.con, err = nats.Connect(c.Nats.Host, nats.UserInfo(c.Nats.User, c.Nats.Password), nats.SyncQueueLen(NatsClientQeueuLen))
 	} else {
 		w.con, err = nats.Connect(c.Nats.Host, nats.SyncQueueLen(NatsClientQeueuLen))
 	}

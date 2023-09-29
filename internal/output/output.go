@@ -20,21 +20,21 @@ type FileOutput struct {
 	outputPathTemplate string
 	outputPath         string
 	roateExec          string
-	roateExecArgs []string
+	roateExecArgs      []string
 	f                  *os.File
 	w                  *bufio.Writer
-	log *logrus.Logger
+	log                *logrus.Logger
 }
 
 func NewFileOutput(log *logrus.Logger, outputPathTemplate, roateExec string) (*FileOutput, error) {
-	commands := strings.Split(roateExec," ")
+	commands := strings.Split(roateExec, " ")
 	f := &FileOutput{
 		outputPathTemplate: outputPathTemplate,
 		roateExec:          commands[0],
-		log: log,
+		log:                log,
 	}
 	if len(commands) > 1 {
-		for i:=1;i<len(commands); i++ {
+		for i := 1; i < len(commands); i++ {
 			if commands[i] != "" {
 				f.roateExecArgs = append(f.roateExecArgs, commands[i])
 			}
@@ -47,7 +47,7 @@ func NewFileOutput(log *logrus.Logger, outputPathTemplate, roateExec string) (*F
 }
 
 func (f *FileOutput) refresh() error {
-	npath := strftime.Format(f.outputPathTemplate,time.Now())
+	npath := strftime.Format(f.outputPathTemplate, time.Now())
 	if npath == f.outputPath {
 		return nil
 	}
@@ -71,7 +71,7 @@ func (f *FileOutput) refresh() error {
 	}
 	if f.roateExec != "" && oldp != "" {
 		go func() {
-			if err := exec.Command(f.roateExec, append(f.roateExecArgs,oldp)...).Run() ; err != nil {
+			if err := exec.Command(f.roateExec, append(f.roateExecArgs, oldp)...).Run(); err != nil {
 				f.log.Warn("failed to exec after rotate command: %v", err)
 			}
 		}()

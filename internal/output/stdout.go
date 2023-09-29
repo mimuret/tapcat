@@ -10,7 +10,7 @@ func NewStdout() *Stdout {
 }
 
 func (f *Stdout) Write(bs []byte) (int, error) {
-	if _, err := os.Stdout.Write(bs) ; err != nil {
+	if _, err := os.Stdout.Write(bs); err != nil {
 		return 0, err
 	}
 	if _, err := os.Stdout.Write([]byte("\n")); err != nil {

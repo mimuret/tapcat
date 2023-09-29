@@ -7,6 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/goccy/go-json v0.7.9 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869
+	github.com/miekg/dns v1.1.49 // indirect
 	github.com/mimuret/dtap v0.5.3
 	github.com/nats-io/gnatsd v1.4.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.6.1 // indirect

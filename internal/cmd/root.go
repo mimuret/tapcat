@@ -90,10 +90,14 @@ func init() {
 	viper.BindPFlag("loglevel", rootCmd.PersistentFlags().Lookup("loglevel"))
 	rootCmd.PersistentFlags().StringP("template", "t", "{{.Type }} {{ .Timestamp }} {{ .Qclass }} {{ .Qtype }} {{ .Qname }}", "for line output go-template")
 	viper.BindPFlag("template", rootCmd.PersistentFlags().Lookup("template"))
-	rootCmd.PersistentFlags().StringP("output", "o", "line", "line,json (default is line)")
+	rootCmd.PersistentFlags().StringP("output", "o", "line", "line,json,dns (default is line)")
 	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 	rootCmd.PersistentFlags().StringP("filename", "f", "", "output path (default is stdout)")
 	viper.BindPFlag("filename", rootCmd.PersistentFlags().Lookup("filename"))
+	rootCmd.PersistentFlags().StringP("servers", "g", "", "mirror servers comma separated(default is 127.0.0.1:53)")
+	viper.BindPFlag("servers", rootCmd.PersistentFlags().Lookup("servers"))
+	rootCmd.PersistentFlags().BoolP("dns-rd", "", false, "rd bit for output dns (default is false)")
+	viper.BindPFlag("dns-rd", rootCmd.PersistentFlags().Lookup("dns-rd"))
 	rootCmd.PersistentFlags().StringP("start", "s", "", "start time RFC3339 format (default is 0)")
 	viper.BindPFlag("start", rootCmd.PersistentFlags().Lookup("start"))
 	rootCmd.PersistentFlags().StringP("end", "e", "", "end time RFC3339 format (default is Inf)")
@@ -159,6 +163,8 @@ func prepare(v *viper.Viper) error {
 		runtime.formater = format.NewLineFormater(tpl)
 	case "json":
 		runtime.formater = format.NewJsonFormater()
+	case "dns":
+		runtime.formater = format.NewDNSFormater(viper.GetBool("dns-rd"))
 	default:
 		return fmt.Errorf("not support output `%s`", v.GetString("output"))
 	}
@@ -208,7 +214,9 @@ func run(v *viper.Viper) error {
 		}).Info("end at")
 	}
 	var outputer io.WriteCloser
-	if v.GetString("filename") == "-" {
+	if viper.GetString("output") == "dns" {
+		outputer = output.NewDNS(v.GetString("servers"))
+	}else if v.GetString("filename") == "-" {
 		outputer = output.NewNothing()
 	}else if v.GetString("filename") != "" {
 		if outputer, err = output.NewFileOutput(log.StandardLogger(),viper.GetString("filename"), viper.GetString("rotate-exec")); err != nil {
